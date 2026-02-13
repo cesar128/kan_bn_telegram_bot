@@ -5,6 +5,7 @@ import telebot
 import re
 import time
 import os
+from html.parser import HTMLParser
 
 # Configuration
 BASE_URL = os.getenv("BASE_URL")
@@ -36,6 +37,68 @@ def load_state():
         return {
             "last_check": (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
         }
+
+
+class TelegramHTMLFilter(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.result = []
+        self.allowed_tags = {
+            "b",
+            "strong",
+            "i",
+            "em",
+            "u",
+            "ins",
+            "s",
+            "strike",
+            "del",
+            "span",
+            "tg-spoiler",
+            "a",
+            "tg-emoji",
+            "code",
+            "pre",
+            "blockquote",
+        }
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self.allowed_tags:
+            # Reconstruct the tag with its attributes
+            attrs_str = "".join(f' {k}="{v}"' for k, v in attrs)
+            self.result.append(f"<{tag}{attrs_str}>")
+        elif tag in ("ul", "ol"):
+            # Skip list containers
+            pass
+        elif tag == "li":
+            self.result.append("- ")
+        elif tag == "br":
+            self.result.append("\n")
+        elif tag == "p":
+            # Opening p tag doesn't add anything
+            pass
+
+    def handle_endtag(self, tag):
+        if tag in self.allowed_tags:
+            self.result.append(f"</{tag}>")
+        elif tag in ("ul", "ol"):
+            pass
+        elif tag == "li":
+            self.result.append("\n")
+        elif tag == "p":
+            self.result.append("\n")
+
+    def handle_data(self, data):
+        self.result.append(data)
+
+    def get_result(self):
+        return "".join(self.result)
+
+
+def filter_html_for_telegram(html_string):
+    parser = TelegramHTMLFilter()
+    parser.feed(html_string)
+    return parser.get_result()
 
 
 def main():
@@ -81,15 +144,7 @@ def main():
 
                     msg = f"Actualizacion de {act['user']['name']}\n" + msg
 
-                    msg = re.sub(r"<ul[^>]*>", "", msg)
-                    msg = re.sub(r"</ul[^>]*>", "", msg)
-                    msg = re.sub(r"<ol[^>]*>", "", msg)
-                    msg = re.sub(r"</ol[^>]*>", "", msg)
-                    msg = re.sub(r"<br[^>]*>", "\n", msg)
-                    msg = re.sub(r"<li[^>]*>", "- ", msg)
-                    msg = re.sub(r"</li[^>]*>", "\n", msg)
-                    msg = re.sub(r"<p[^>]*>", "", msg)
-                    msg = re.sub(r"</p[^>]*>", "\n", msg)
+                    filter_html_for_telegram(msg)
 
                     bot = telebot.TeleBot(TELEGRAM_TOKEN, parse_mode="html")
                     bot.send_message(
