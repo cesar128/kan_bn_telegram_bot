@@ -1,7 +1,6 @@
 import requests
 import pickle
 from datetime import datetime, timezone, timedelta
-from tqdm import tqdm
 import telebot
 import re
 import time
@@ -55,50 +54,45 @@ def main():
 
     statuses = []
 
-    with tqdm(total=len(all_cards), desc="Processing cards") as pbar:
-        for card in all_cards:
-            activities = get_json(f"/cards/{card['publicId']}/activities")
-            if not "activities" in activities:
-                pbar.update(1)
-                continue
-            for act in activities["activities"]:
-                # Only process activities newer than our last global check
-                statuses.append(act["type"])
-                if act["createdAt"] > last_check:
-                    pass
-                    if act["type"] == "card.created":
-                        msg = f'🆕 Nueva tarea: <a href="{BASE_URL}cards/{card["publicId"]}">{card["title"]}</a>\nDescripción:\n{card["description"]}'
-                    elif act["type"] == "card.updated.label.added":
-                        msg = f'🔄 Tarea actualizada: <a href="{BASE_URL}cards/{card["publicId"]}">{card["title"]}</a>\n\nEtiqueta agregada: <strong>{act["label"]["name"]}</strong>'
-                    elif act["type"] == "card.updated.comment.added":
-                        msg = f'💬 Comentario agregado: <a href="{BASE_URL}cards/{card["publicId"]}">{card["title"]}</a>\n\n:{act["comment"]["comment"]}'
-                    elif act["type"] == "card.updated.list":
-                        msg = f'🔀Tarea movida a otra lista: <a href="{BASE_URL}cards/{card["publicId"]}">{card["title"]}</a>\n\n<strong>{act["fromList"]["name"]} ==> {act["toList"]["name"]}</strong>'
-                    elif act["type"] == "card.updated.member.added":
-                        msg = f'🐸 Asignacion de tarea: <a href="{BASE_URL}cards/{card["publicId"]}">{card["title"]}</a>\n\nAsignada a <strong>{act["member"]["user"]["name"]}</strong>'
-                    elif act["type"] == "card.updated.attachment.added":
-                        msg = f'📎 Agregó documento adjunto: <a href="{BASE_URL}cards/{card["publicId"]}">{card["title"]}</a>'
-                    else:
-                        msg = f'🤔 {act["type"]}: <a href="{BASE_URL}cards/{card["publicId"]}">{card["title"]}</a>'
+    for card in all_cards:
+        activities = get_json(f"/cards/{card['publicId']}/activities")
+        if not "activities" in activities:
+            continue
+        for act in activities["activities"]:
+            # Only process activities newer than our last global check
+            statuses.append(act["type"])
+            if act["createdAt"] > last_check:
+                pass
+                if act["type"] == "card.created":
+                    msg = f'🆕 Nueva tarea: <a href="{BASE_URL}cards/{card["publicId"]}">{card["title"]}</a>\nDescripción:\n{card["description"]}'
+                elif act["type"] == "card.updated.label.added":
+                    msg = f'🔄 Tarea actualizada: <a href="{BASE_URL}cards/{card["publicId"]}">{card["title"]}</a>\n\nEtiqueta agregada: <strong>{act["label"]["name"]}</strong>'
+                elif act["type"] == "card.updated.comment.added":
+                    msg = f'💬 Comentario agregado: <a href="{BASE_URL}cards/{card["publicId"]}">{card["title"]}</a>\n\n:{act["comment"]["comment"]}'
+                elif act["type"] == "card.updated.list":
+                    msg = f'🔀Tarea movida a otra lista: <a href="{BASE_URL}cards/{card["publicId"]}">{card["title"]}</a>\n\n<strong>{act["fromList"]["name"]} ==> {act["toList"]["name"]}</strong>'
+                elif act["type"] == "card.updated.member.added":
+                    msg = f'🐸 Asignacion de tarea: <a href="{BASE_URL}cards/{card["publicId"]}">{card["title"]}</a>\n\nAsignada a <strong>{act["member"]["user"]["name"]}</strong>'
+                elif act["type"] == "card.updated.attachment.added":
+                    msg = f'📎 Agregó documento adjunto: <a href="{BASE_URL}cards/{card["publicId"]}">{card["title"]}</a>'
+                else:
+                    msg = f'🤔 {act["type"]}: <a href="{BASE_URL}cards/{card["publicId"]}">{card["title"]}</a>'
 
-                    msg = f"Actualizacion de {act['user']['name']}\n" + msg
+                msg = f"Actualizacion de {act['user']['name']}\n" + msg
 
-                    msg = re.sub(r"<ul[^>]*>", "", msg)
-                    msg = re.sub(r"</ul[^>]*>", "", msg)
-                    msg = re.sub(r"<ol[^>]*>", "", msg)
-                    msg = re.sub(r"</ol[^>]*>", "", msg)
-                    msg = re.sub(r"<li[^>]*>", "- ", msg)
-                    msg = re.sub(r"</li[^>]*>", "\n", msg)
-                    msg = re.sub(r"<p[^>]*>", "", msg)
-                    msg = re.sub(r"</p[^>]*>", "\n", msg)
+                msg = re.sub(r"<ul[^>]*>", "", msg)
+                msg = re.sub(r"</ul[^>]*>", "", msg)
+                msg = re.sub(r"<ol[^>]*>", "", msg)
+                msg = re.sub(r"</ol[^>]*>", "", msg)
+                msg = re.sub(r"<li[^>]*>", "- ", msg)
+                msg = re.sub(r"</li[^>]*>", "\n", msg)
+                msg = re.sub(r"<p[^>]*>", "", msg)
+                msg = re.sub(r"</p[^>]*>", "\n", msg)
 
-                    bot = telebot.TeleBot(TELEGRAM_TOKEN, parse_mode="html")
-                    bot.send_message(
-                        TELEGRAM_CHAT_ID, msg, disable_web_page_preview=True
-                    )
-                    pass
-
-            pbar.update(1)
+                bot = telebot.TeleBot(TELEGRAM_TOKEN, parse_mode="html")
+                bot.send_message(TELEGRAM_CHAT_ID, msg, disable_web_page_preview=True)
+                pass
+    print(f"Checked at {current_run_time}, last check was at {last_check}")
 
     # 4. Save the current timestamp as the new baseline
     with open(STATE_FILE, "wb") as f:
