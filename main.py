@@ -85,6 +85,7 @@ def main():
                 msg = re.sub(r"</ul[^>]*>", "", msg)
                 msg = re.sub(r"<ol[^>]*>", "", msg)
                 msg = re.sub(r"</ol[^>]*>", "", msg)
+                msg = re.sub(r"<br[^>]*>", "\n", msg)
                 msg = re.sub(r"<li[^>]*>", "- ", msg)
                 msg = re.sub(r"</li[^>]*>", "\n", msg)
                 msg = re.sub(r"<p[^>]*>", "", msg)
@@ -103,8 +104,6 @@ def main():
     # 4. Save the current timestamp as the new baseline
     with open(STATE_FILE, "wb") as f:
         pickle.dump({"last_check": current_run_time}, f)
-
-    print(set(statuses))
 
 
 # {
