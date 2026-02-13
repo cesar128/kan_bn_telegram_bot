@@ -1,0 +1,4 @@
+/.env
+/.vscode
+/compose.debug.yaml
+/Pipfile

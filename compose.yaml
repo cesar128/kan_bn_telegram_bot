@@ -1,0 +1,11 @@
+services:
+  kanbntelegrambot:
+    image: kanbntelegrambot
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - /db:/app/db
+    restart: unless-stopped
