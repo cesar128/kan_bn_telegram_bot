@@ -11,6 +11,7 @@ BASE_URL = os.getenv("BASE_URL")
 KANBN_API_KEY = os.getenv("KANBN_API_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+TELEGRAM_THREAD_ID = os.getenv("TELEGRAM_THREAD_ID")
 
 WORKSPACE_ID = os.getenv("WORKSPACE_ID")
 BOARD_ID = os.getenv("BOARD_ID")
@@ -90,7 +91,12 @@ def main():
                 msg = re.sub(r"</p[^>]*>", "\n", msg)
 
                 bot = telebot.TeleBot(TELEGRAM_TOKEN, parse_mode="html")
-                bot.send_message(TELEGRAM_CHAT_ID, msg, disable_web_page_preview=True)
+                bot.send_message(
+                    TELEGRAM_CHAT_ID,
+                    msg,
+                    disable_web_page_preview=True,
+                    message_thread_id=TELEGRAM_THREAD_ID,
+                )
                 pass
     print(f"Checked at {current_run_time}, last check was at {last_check}")
 
