@@ -144,7 +144,7 @@ def main():
 
                     msg = f"Actualizacion de {act['user']['name']}\n" + msg
 
-                    filter_html_for_telegram(msg)
+                    msg = filter_html_for_telegram(msg)
 
                     bot = telebot.TeleBot(TELEGRAM_TOKEN, parse_mode="html")
                     bot.send_message(
